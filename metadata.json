@@ -1,0 +1,6 @@
+{
+  "name": "SUPI",
+  "description": "Zahlen-Generator und KI-Berater",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
