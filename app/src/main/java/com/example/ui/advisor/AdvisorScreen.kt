@@ -3,6 +3,7 @@ package com.example.ui.advisor
 import android.widget.Toast
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -20,11 +21,16 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.example.model.PaymentProvider
+import com.example.model.PaymentTransaction
 import com.example.ui.generator.BentoCard
 import com.example.ui.theme.*
 
 @Composable
-fun AdvisorScreen() {
+fun AdvisorScreen(
+    onOpenPayment: (initialPackageId: String) -> Unit,
+    transactions: List<PaymentTransaction> = emptyList()
+) {
     val context = LocalContext.current
     val scrollState = rememberScrollState()
 
@@ -66,13 +72,13 @@ fun AdvisorScreen() {
 
                 Column {
                     Text(
-                        text = "KI-Berater & Orakel",
+                        text = "KI-Berater & Quoten",
                         fontSize = 20.sp,
                         fontWeight = FontWeight.Bold,
                         color = TextPrimary
                     )
                     Text(
-                        text = "Statistiken, Quoten und Muster-Analysen",
+                        text = "Statistiken, Quoten & PayPal/Mollie Bezahlung",
                         fontSize = 12.sp,
                         color = TextSecondary
                     )
@@ -149,6 +155,58 @@ fun AdvisorScreen() {
                     fontSize = 10.sp,
                     color = TextMuted
                 )
+            }
+        }
+
+        // ── Single Draw Tarif Banner (1,35 €) ─────────────────────────────
+        BentoCard(
+            backgroundColor = SurfaceDark,
+            borderColor = AccentAmber.copy(alpha = 0.5f),
+            cornerRadius = 20.dp
+        ) {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.SpaceBetween
+            ) {
+                Column(modifier = Modifier.weight(1f)) {
+                    Text(
+                        text = "Einzeltarif: 1 Ziehung",
+                        fontSize = 15.sp,
+                        fontWeight = FontWeight.Bold,
+                        color = Color.White
+                    )
+                    Text(
+                        text = "Exakt 1,35 € pro Ziehung ohne Abo-Bindung",
+                        fontSize = 12.sp,
+                        color = TextSecondary
+                    )
+                }
+
+                Text(
+                    text = "1,35 €",
+                    fontSize = 22.sp,
+                    fontWeight = FontWeight.Black,
+                    color = AccentAmber
+                )
+            }
+
+            Spacer(modifier = Modifier.height(12.dp))
+
+            Button(
+                onClick = { onOpenPayment("single_draw") },
+                modifier = Modifier.fillMaxWidth(),
+                colors = ButtonDefaults.buttonColors(containerColor = AccentAmber),
+                shape = RoundedCornerShape(12.dp)
+            ) {
+                Icon(
+                    imageVector = Icons.Filled.ShoppingCart,
+                    contentDescription = "Buy",
+                    tint = Color.Black,
+                    modifier = Modifier.size(18.dp)
+                )
+                Spacer(modifier = Modifier.width(8.dp))
+                Text("1 Ziehung für 1,35 € kaufen (PayPal / Mollie)", color = Color.Black, fontWeight = FontWeight.Bold, fontSize = 13.sp)
             }
         }
 
@@ -232,7 +290,7 @@ fun AdvisorScreen() {
                 Spacer(modifier = Modifier.height(8.dp))
 
                 Text(
-                    text = "Schalte vollen Zugriff auf alle Tracker, visionäre Projekte, den DBT-Skill-Katalog und Bodo (KI-Coach) frei.",
+                    text = "Schalte unbegrenzte Ziehungen, alle Tracker, visionäre Projekte und Bodo (KI-Coach) frei.",
                     fontSize = 12.sp,
                     color = TextSecondary,
                     textAlign = androidx.compose.ui.text.style.TextAlign.Center,
@@ -243,13 +301,13 @@ fun AdvisorScreen() {
 
             Spacer(modifier = Modifier.height(16.dp))
 
-            // Warning / Notice Banner from screenshot
+            // Warning / Notice Banner
             Box(
                 modifier = Modifier
                     .fillMaxWidth()
                     .clip(RoundedCornerShape(12.dp))
-                    .background(DeepRed.copy(alpha = 0.35f))
-                    .border(1.dp, HotRed.copy(alpha = 0.5f), RoundedCornerShape(12.dp))
+                    .background(Color(0xFF003087).copy(alpha = 0.2f))
+                    .border(1.dp, Color(0xFF0079C1).copy(alpha = 0.4f), RoundedCornerShape(12.dp))
                     .padding(12.dp)
             ) {
                 Row(
@@ -257,14 +315,14 @@ fun AdvisorScreen() {
                     horizontalArrangement = Arrangement.spacedBy(8.dp)
                 ) {
                     Icon(
-                        imageVector = Icons.Filled.Info,
+                        imageVector = Icons.Filled.Payment,
                         contentDescription = "Notice",
-                        tint = HotRed,
+                        tint = ElectricBlue,
                         modifier = Modifier.size(18.dp)
                     )
                     Text(
-                        text = "PayPal Credentials fehlen. Bitte PAYPAL_CLIENT_ID und PAYPAL_SECRET in der .env Datei hinterlegen.",
-                        color = Color(0xFFFFCCCC),
+                        text = "PayPal & Mollie APIs sind aktiv und unterstützen Kreditkarte, Klarna/Sofort, iDEAL & Bancontact.",
+                        color = Color.White,
                         fontSize = 11.sp,
                         lineHeight = 14.sp
                     )
@@ -276,7 +334,7 @@ fun AdvisorScreen() {
             // PayPal Button
             Button(
                 onClick = {
-                    Toast.makeText(context, "PayPal Gateway bereit zur Verbindung", Toast.LENGTH_SHORT).show()
+                    onOpenPayment("monthly_abo")
                 },
                 modifier = Modifier
                     .fillMaxWidth()
@@ -294,7 +352,7 @@ fun AdvisorScreen() {
                 )
                 Spacer(modifier = Modifier.width(8.dp))
                 Text(
-                    text = "Mit PayPal abonnieren",
+                    text = "Mit PayPal abonnieren (1,99 €)",
                     fontWeight = FontWeight.Bold,
                     fontSize = 14.sp
                 )
@@ -305,13 +363,13 @@ fun AdvisorScreen() {
             // Mollie Button
             Button(
                 onClick = {
-                    Toast.makeText(context, "Mollie Gateway bereit zur Verbindung", Toast.LENGTH_SHORT).show()
+                    onOpenPayment("monthly_abo")
                 },
                 modifier = Modifier
                     .fillMaxWidth()
                     .height(48.dp),
                 colors = ButtonDefaults.buttonColors(
-                    containerColor = Color(0xFF1E293B)
+                    containerColor = Color(0xFF8B5CF6)
                 ),
                 shape = RoundedCornerShape(14.dp)
             ) {
@@ -323,10 +381,46 @@ fun AdvisorScreen() {
                 )
                 Spacer(modifier = Modifier.width(8.dp))
                 Text(
-                    text = "Mit Mollie abonnieren",
+                    text = "Mit Mollie abonnieren (1,99 €)",
                     fontWeight = FontWeight.Bold,
                     fontSize = 14.sp
                 )
+            }
+        }
+
+        // ── Transaction Receipts Bento Card (if any) ──────────────────────
+        if (transactions.isNotEmpty()) {
+            BentoCard(
+                backgroundColor = SurfaceDark,
+                borderColor = SurfaceBorder
+            ) {
+                Text(
+                    text = "Zahlungshistorie & Belege",
+                    fontWeight = FontWeight.Bold,
+                    fontSize = 15.sp,
+                    color = TextPrimary
+                )
+                Spacer(modifier = Modifier.height(10.dp))
+
+                Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                    transactions.forEach { tx ->
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .clip(RoundedCornerShape(10.dp))
+                                .background(SurfaceCard)
+                                .padding(10.dp),
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.SpaceBetween
+                        ) {
+                            Column {
+                                Text(tx.packageTitle, fontWeight = FontWeight.SemiBold, fontSize = 13.sp, color = TextPrimary)
+                                Text("${tx.formattedDate} • ${tx.provider.displayName}", fontSize = 10.sp, color = TextMuted)
+                            }
+                            Text(tx.formattedPrice, fontWeight = FontWeight.Bold, fontSize = 13.sp, color = AccentEmerald)
+                        }
+                    }
+                }
             }
         }
     }

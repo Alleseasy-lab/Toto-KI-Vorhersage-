@@ -27,21 +27,28 @@ import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.example.model.DrawPackage
 import com.example.model.GameType
 import com.example.model.GeneratorLogic
+import com.example.model.PaymentProvider
 import com.example.model.TicketResult
+import com.example.ui.payment.PaymentBottomSheet
 import com.example.ui.theme.*
 
 @Composable
 fun GeneratorScreen(
     onSaveTicket: (TicketResult) -> Unit,
-    savedTicketsCount: Int
+    savedTicketsCount: Int,
+    availableDraws: Int,
+    onUseDraw: () -> Boolean,
+    onTopUpSuccess: (DrawPackage, PaymentProvider, String?) -> Unit
 ) {
     val context = LocalContext.current
     val clipboardManager = LocalClipboardManager.current
 
     var selectedGame by remember { mutableStateOf(GameType.LOTTO_6_49) }
     var showCustomizer by remember { mutableStateOf(false) }
+    var showPaymentModal by remember { mutableStateOf(false) }
 
     // Custom parameters
     var customCount by remember { mutableIntStateOf(6) }
@@ -60,17 +67,46 @@ fun GeneratorScreen(
     val scrollState = rememberScrollState()
 
     fun triggerDraw() {
-        isDrawing = true
-        currentTicket = GeneratorLogic.draw(
-            gameType = selectedGame,
-            customCount = customCount,
-            customMin = customMin,
-            customMax = customMax,
-            customSuperCount = customSuperCount,
-            customSuperMin = customSuperMin,
-            customSuperMax = customSuperMax
+        if (availableDraws > 0) {
+            val success = onUseDraw()
+            if (success) {
+                isDrawing = true
+                currentTicket = GeneratorLogic.draw(
+                    gameType = selectedGame,
+                    customCount = customCount,
+                    customMin = customMin,
+                    customMax = customMax,
+                    customSuperCount = customSuperCount,
+                    customSuperMin = customSuperMin,
+                    customSuperMax = customSuperMax
+                )
+                isDrawing = false
+                Toast.makeText(context, "1 Ziehung eingelöst (Verbleibend: ${availableDraws - 1})", Toast.LENGTH_SHORT).show()
+            }
+        } else {
+            Toast.makeText(context, "Eine Ziehung kostet 1,35 €. Bitte wähle PayPal oder Mollie zum Freischalten.", Toast.LENGTH_LONG).show()
+            showPaymentModal = true
+        }
+    }
+
+    if (showPaymentModal) {
+        PaymentBottomSheet(
+            onDismissRequest = { showPaymentModal = false },
+            onPaymentSuccess = { pkg, provider, method ->
+                onTopUpSuccess(pkg, provider, method)
+                showPaymentModal = false
+                // Auto execute first draw after purchase
+                currentTicket = GeneratorLogic.draw(
+                    gameType = selectedGame,
+                    customCount = customCount,
+                    customMin = customMin,
+                    customMax = customMax,
+                    customSuperCount = customSuperCount,
+                    customSuperMin = customSuperMin,
+                    customSuperMax = customSuperMax
+                )
+            }
         )
-        isDrawing = false
     }
 
     Column(
@@ -88,40 +124,139 @@ fun GeneratorScreen(
             contentPadding = PaddingValues(16.dp)
         ) {
             Row(
+                modifier = Modifier.fillMaxWidth(),
                 verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(12.dp)
+                horizontalArrangement = Arrangement.SpaceBetween
             ) {
-                Box(
-                    modifier = Modifier
-                        .size(44.dp)
-                        .clip(RoundedCornerShape(14.dp))
-                        .background(
-                            Brush.linearGradient(
-                                listOf(AccentAmber, GradientOrange)
-                            )
-                        ),
-                    contentAlignment = Alignment.Center
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(12.dp)
                 ) {
-                    Icon(
-                        imageVector = Icons.Filled.Casino,
-                        contentDescription = "Dice",
-                        tint = Color.White,
-                        modifier = Modifier.size(26.dp)
-                    )
+                    Box(
+                        modifier = Modifier
+                            .size(44.dp)
+                            .clip(RoundedCornerShape(14.dp))
+                            .background(
+                                Brush.linearGradient(
+                                    listOf(AccentAmber, GradientOrange)
+                                )
+                            ),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Icon(
+                            imageVector = Icons.Filled.Casino,
+                            contentDescription = "Dice",
+                            tint = Color.White,
+                            modifier = Modifier.size(26.dp)
+                        )
+                    }
+
+                    Column {
+                        Text(
+                            text = "Zahlen-Generator",
+                            fontSize = 20.sp,
+                            fontWeight = FontWeight.Bold,
+                            color = TextPrimary
+                        )
+                        Text(
+                            text = "1 Ziehung = 1,35 € (PayPal / Mollie)",
+                            fontSize = 12.sp,
+                            color = AccentAmber,
+                            fontWeight = FontWeight.SemiBold
+                        )
+                    }
                 }
 
-                Column {
-                    Text(
-                        text = "Zahlen-Generator",
-                        fontSize = 20.sp,
-                        fontWeight = FontWeight.Bold,
-                        color = TextPrimary
+                // Balance Pill Button
+                Box(
+                    modifier = Modifier
+                        .clip(RoundedCornerShape(12.dp))
+                        .background(if (availableDraws > 0) AccentEmerald.copy(alpha = 0.2f) else DeepRed.copy(alpha = 0.25f))
+                        .border(1.dp, if (availableDraws > 0) AccentEmerald else HotRed, RoundedCornerShape(12.dp))
+                        .clickable { showPaymentModal = true }
+                        .padding(horizontal = 10.dp, vertical = 6.dp)
+                ) {
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(4.dp)
+                    ) {
+                        Icon(
+                            imageVector = Icons.Filled.ConfirmationNumber,
+                            contentDescription = "Ticket",
+                            tint = if (availableDraws > 0) AccentEmerald else HotRed,
+                            modifier = Modifier.size(14.dp)
+                        )
+                        Text(
+                            text = "$availableDraws Ziehung${if (availableDraws != 1) "en" else ""}",
+                            fontSize = 11.sp,
+                            fontWeight = FontWeight.Bold,
+                            color = if (availableDraws > 0) AccentEmerald else Color(0xFFFF9999)
+                        )
+                    }
+                }
+            }
+        }
+
+        // ── Tarife & Guthaben Bento Banner ────────────────────────────────
+        Box(
+            modifier = Modifier
+                .fillMaxWidth()
+                .clip(RoundedCornerShape(16.dp))
+                .background(
+                    Brush.horizontalGradient(
+                        listOf(Color(0xFF003087).copy(alpha = 0.35f), Color(0xFF8B5CF6).copy(alpha = 0.25f))
                     )
-                    Text(
-                        text = "Eindeutige Zufallszahlen & Superzahlen nach Wunsch",
-                        fontSize = 12.sp,
-                        color = TextSecondary
-                    )
+                )
+                .border(1.dp, Color(0xFF0079C1).copy(alpha = 0.4f), RoundedCornerShape(16.dp))
+                .clickable { showPaymentModal = true }
+                .padding(horizontal = 14.dp, vertical = 10.dp)
+        ) {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.SpaceBetween
+            ) {
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(10.dp)
+                ) {
+                    Box(
+                        modifier = Modifier
+                            .size(34.dp)
+                            .clip(CircleShape)
+                            .background(AccentAmber.copy(alpha = 0.2f)),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Icon(
+                            imageVector = Icons.Filled.AccountBalanceWallet,
+                            contentDescription = "Wallet",
+                            tint = AccentAmber,
+                            modifier = Modifier.size(18.dp)
+                        )
+                    }
+                    Column {
+                        Text(
+                            text = "Tarif: 1,35 € pro Ziehung",
+                            fontSize = 13.sp,
+                            fontWeight = FontWeight.Bold,
+                            color = Color.White
+                        )
+                        Text(
+                            text = "Sichere Bezahlung via PayPal & Mollie",
+                            fontSize = 11.sp,
+                            color = TextSecondary
+                        )
+                    }
+                }
+
+                Button(
+                    onClick = { showPaymentModal = true },
+                    colors = ButtonDefaults.buttonColors(containerColor = ElectricBlue),
+                    shape = RoundedCornerShape(10.dp),
+                    contentPadding = PaddingValues(horizontal = 12.dp, vertical = 4.dp),
+                    modifier = Modifier.height(32.dp)
+                ) {
+                    Text("+ Aufladen", fontSize = 11.sp, fontWeight = FontWeight.Bold)
                 }
             }
         }
@@ -147,7 +282,6 @@ fun GeneratorScreen(
                         .clickable {
                             selectedGame = game
                             showCustomizer = (game == GameType.CUSTOM)
-                            triggerDraw()
                         }
                         .padding(horizontal = 14.dp, vertical = 10.dp),
                     contentAlignment = Alignment.Center
@@ -428,22 +562,22 @@ fun GeneratorScreen(
             modifier = Modifier
                 .fillMaxWidth()
                 .height(54.dp)
-                .shadow(12.dp, RoundedCornerShape(16.dp), ambientColor = ElectricBlue, spotColor = ElectricBlue),
+                .shadow(12.dp, RoundedCornerShape(16.dp), ambientColor = if (availableDraws > 0) ElectricBlue else AccentAmber, spotColor = if (availableDraws > 0) ElectricBlue else AccentAmber),
             colors = ButtonDefaults.buttonColors(
-                containerColor = ElectricBlue
+                containerColor = if (availableDraws > 0) ElectricBlue else AccentAmber
             ),
             shape = RoundedCornerShape(16.dp)
         ) {
             Icon(
-                imageVector = Icons.Filled.Casino,
+                imageVector = if (availableDraws > 0) Icons.Filled.Casino else Icons.Filled.ShoppingCart,
                 contentDescription = "Draw",
                 tint = Color.White,
                 modifier = Modifier.size(20.dp)
             )
             Spacer(modifier = Modifier.width(8.dp))
             Text(
-                text = "Zahlen ziehen",
-                fontSize = 16.sp,
+                text = if (availableDraws > 0) "Zahlen ziehen (1 Ziehung)" else "Zahlen ziehen (1,35 € mit PayPal / Mollie)",
+                fontSize = 15.sp,
                 fontWeight = FontWeight.Bold,
                 color = Color.White
             )
@@ -587,3 +721,4 @@ fun GeneratorScreen(
         }
     }
 }
+

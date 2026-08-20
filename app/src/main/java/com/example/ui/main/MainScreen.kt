@@ -1,5 +1,6 @@
 package com.example.ui.main
 
+import android.widget.Toast
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.*
@@ -11,21 +12,35 @@ import androidx.compose.material.icons.filled.Casino
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.example.model.GameType
-import com.example.model.TicketResult
+import com.example.model.*
 import com.example.ui.advisor.AdvisorScreen
 import com.example.ui.generator.GeneratorScreen
+import com.example.ui.payment.PaymentBottomSheet
 import com.example.ui.saved.SavedScreen
 import com.example.ui.theme.*
 
 @Composable
 fun MainScreen() {
+    val context = LocalContext.current
     var selectedTab by remember { mutableIntStateOf(0) }
+
+    // Ziehungs-Guthaben (Initial 2 kostenlose Begrüßungs-Ziehungen, danach 1,35 € pro Ziehung)
+    var availableDraws by remember { mutableIntStateOf(2) }
+
+    // Transaktionshistorie
+    var transactions by remember {
+        mutableStateOf(
+            listOf<PaymentTransaction>()
+        )
+    }
+
+    // Modal Sheet State for global trigger
+    var activePaymentPackageId by remember { mutableStateOf<String?>(null) }
 
     // Persistent in-memory saved tickets list
     var savedTickets by remember {
@@ -38,6 +53,39 @@ fun MainScreen() {
                     superNumbers = listOf(7)
                 )
             )
+        )
+    }
+
+    // Handler for successful payment
+    fun handlePaymentSuccess(pkg: DrawPackage, provider: PaymentProvider, subMethod: String?) {
+        val addedDraws = if (pkg.id == "monthly_abo") 999 else pkg.draws
+        availableDraws += addedDraws
+
+        val tx = PaymentTransaction(
+            packageTitle = pkg.title,
+            amount = pkg.priceEuros,
+            provider = provider,
+            subMethod = subMethod,
+            drawsAdded = addedDraws
+        )
+        transactions = listOf(tx) + transactions
+
+        Toast.makeText(
+            context,
+            "Erfolgreich gebucht: ${pkg.title} via ${provider.displayName}!",
+            Toast.LENGTH_LONG
+        ).show()
+    }
+
+    // Global payment sheet triggered from Advisor or Header
+    activePaymentPackageId?.let { pkgId ->
+        PaymentBottomSheet(
+            onDismissRequest = { activePaymentPackageId = null },
+            initialPackageId = pkgId,
+            onPaymentSuccess = { pkg, provider, subMethod ->
+                handlePaymentSuccess(pkg, provider, subMethod)
+                activePaymentPackageId = null
+            }
         )
     }
 
@@ -125,7 +173,7 @@ fun MainScreen() {
                         },
                         label = {
                             Text(
-                                "KI-Berater",
+                                "KI & Kasse",
                                 fontSize = 11.sp,
                                 fontWeight = if (selectedTab == 2) FontWeight.Bold else FontWeight.Normal
                             )
@@ -155,7 +203,19 @@ fun MainScreen() {
                     onSaveTicket = { ticket ->
                         savedTickets = listOf(ticket) + savedTickets.filter { it.id != ticket.id }
                     },
-                    savedTicketsCount = savedTickets.size
+                    savedTicketsCount = savedTickets.size,
+                    availableDraws = availableDraws,
+                    onUseDraw = {
+                        if (availableDraws > 0) {
+                            availableDraws -= 1
+                            true
+                        } else {
+                            false
+                        }
+                    },
+                    onTopUpSuccess = { pkg, provider, subMethod ->
+                        handlePaymentSuccess(pkg, provider, subMethod)
+                    }
                 )
                 1 -> SavedScreen(
                     savedTickets = savedTickets,
@@ -166,7 +226,12 @@ fun MainScreen() {
                         savedTickets = emptyList()
                     }
                 )
-                2 -> AdvisorScreen()
+                2 -> AdvisorScreen(
+                    onOpenPayment = { pkgId ->
+                        activePaymentPackageId = pkgId
+                    },
+                    transactions = transactions
+                )
             }
         }
     }
