@@ -56,7 +56,7 @@ fun PaymentBottomSheet(
         sheetState = sheetState,
         containerColor = SurfaceDark,
         contentColor = TextPrimary,
-        shape = RoundedCornerShape(topStart = 28.dp, topEnd = 28.dp),
+        shape = RoundedCornerShape(topStart = BentoCardRadiusLarge, topEnd = BentoCardRadiusLarge),
         dragHandle = {
             Box(
                 modifier = Modifier
@@ -88,6 +88,7 @@ fun PaymentBottomSheet(
                     Box(
                         modifier = Modifier
                             .size(72.dp)
+                            .shadow(8.dp, CircleShape, ambientColor = AccentEmerald.copy(alpha = 0.35f), spotColor = AccentEmerald.copy(alpha = 0.35f))
                             .clip(CircleShape)
                             .background(AccentEmerald.copy(alpha = 0.2f))
                             .border(2.dp, AccentEmerald, CircleShape),
@@ -120,12 +121,13 @@ fun PaymentBottomSheet(
                             onDismissRequest()
                         },
                         colors = ButtonDefaults.buttonColors(containerColor = AccentEmerald),
-                        shape = RoundedCornerShape(14.dp),
+                        shape = RoundedCornerShape(BentoInnerRadius),
                         modifier = Modifier
                             .fillMaxWidth()
                             .height(50.dp)
+                            .shadow(6.dp, RoundedCornerShape(BentoInnerRadius), ambientColor = AccentEmerald.copy(alpha = 0.4f), spotColor = AccentEmerald.copy(alpha = 0.4f))
                     ) {
-                        Text("Jetzt Zahlen ziehen", fontWeight = FontWeight.Bold, fontSize = 15.sp)
+                        Text("Jetzt Zahlen ziehen", fontWeight = FontWeight.Bold, fontSize = 15.sp, color = PrimaryDark)
                     }
                 }
             } else {
@@ -152,10 +154,11 @@ fun PaymentBottomSheet(
 
                     Box(
                         modifier = Modifier
-                            .clip(RoundedCornerShape(12.dp))
+                            .shadow(3.dp, RoundedCornerShape(BentoInnerRadius), ambientColor = AccentAmber.copy(alpha = 0.2f), spotColor = AccentAmber.copy(alpha = 0.2f))
+                            .clip(RoundedCornerShape(BentoInnerRadius))
                             .background(AccentAmber.copy(alpha = 0.15f))
-                            .border(1.dp, AccentAmber.copy(alpha = 0.4f), RoundedCornerShape(12.dp))
-                            .padding(horizontal = 10.dp, vertical = 4.dp)
+                            .border(1.dp, AccentAmber.copy(alpha = 0.5f), RoundedCornerShape(BentoInnerRadius))
+                            .padding(horizontal = 10.dp, vertical = 5.dp)
                     ) {
                         Text(
                             text = "1 Ziehung = 1,35 €",
@@ -178,14 +181,20 @@ fun PaymentBottomSheet(
                     STANDARD_DRAW_PACKAGES.forEach { pkg ->
                         val isSelected = selectedPackage.id == pkg.id
                         val borderColor = if (isSelected) ElectricBlue else SurfaceBorder
-                        val bgColor = if (isSelected) ElectricBlue.copy(alpha = 0.12f) else SurfaceCard
+                        val bgColor = if (isSelected) SurfaceCardElevated else SurfaceCard
 
                         Box(
                             modifier = Modifier
                                 .fillMaxWidth()
-                                .clip(RoundedCornerShape(16.dp))
+                                .shadow(
+                                    if (isSelected) 6.dp else 2.dp,
+                                    RoundedCornerShape(BentoInnerRadius),
+                                    ambientColor = if (isSelected) ElectricBlue.copy(alpha = 0.2f) else BentoShadowColor,
+                                    spotColor = if (isSelected) ElectricBlue.copy(alpha = 0.2f) else BentoShadowColor
+                                )
+                                .clip(RoundedCornerShape(BentoInnerRadius))
                                 .background(bgColor)
-                                .border(1.5.dp, borderColor, RoundedCornerShape(16.dp))
+                                .border(1.2.dp, borderColor, RoundedCornerShape(BentoInnerRadius))
                                 .clickable { selectedPackage = pkg }
                                 .padding(14.dp)
                         ) {
@@ -217,7 +226,7 @@ fun PaymentBottomSheet(
                                             if (pkg.isPopular) {
                                                 Box(
                                                     modifier = Modifier
-                                                        .clip(RoundedCornerShape(6.dp))
+                                                        .clip(RoundedCornerShape(BentoBadgeRadius))
                                                         .background(AccentPurple)
                                                         .padding(horizontal = 6.dp, vertical = 2.dp)
                                                 ) {
@@ -261,9 +270,10 @@ fun PaymentBottomSheet(
                     Box(
                         modifier = Modifier
                             .weight(1f)
-                            .clip(RoundedCornerShape(16.dp))
+                            .shadow(if (isPayPal) 6.dp else 2.dp, RoundedCornerShape(BentoInnerRadius), ambientColor = if (isPayPal) Color(0xFF0079C1).copy(alpha = 0.35f) else BentoShadowColor, spotColor = if (isPayPal) Color(0xFF0079C1).copy(alpha = 0.35f) else BentoShadowColor)
+                            .clip(RoundedCornerShape(BentoInnerRadius))
                             .background(if (isPayPal) Color(0xFF003087).copy(alpha = 0.25f) else SurfaceCard)
-                            .border(1.5.dp, if (isPayPal) Color(0xFF0079C1) else SurfaceBorder, RoundedCornerShape(16.dp))
+                            .border(1.2.dp, if (isPayPal) Color(0xFF0079C1) else SurfaceBorder, RoundedCornerShape(BentoInnerRadius))
                             .clickable { selectedProvider = PaymentProvider.PAYPAL }
                             .padding(14.dp)
                     ) {
@@ -297,9 +307,10 @@ fun PaymentBottomSheet(
                     Box(
                         modifier = Modifier
                             .weight(1f)
-                            .clip(RoundedCornerShape(16.dp))
+                            .shadow(if (isMollie) 6.dp else 2.dp, RoundedCornerShape(BentoInnerRadius), ambientColor = if (isMollie) AccentPurple.copy(alpha = 0.35f) else BentoShadowColor, spotColor = if (isMollie) AccentPurple.copy(alpha = 0.35f) else BentoShadowColor)
+                            .clip(RoundedCornerShape(BentoInnerRadius))
                             .background(if (isMollie) Color(0xFF8B5CF6).copy(alpha = 0.25f) else SurfaceCard)
-                            .border(1.5.dp, if (isMollie) AccentPurple else SurfaceBorder, RoundedCornerShape(16.dp))
+                            .border(1.2.dp, if (isMollie) AccentPurple else SurfaceBorder, RoundedCornerShape(BentoInnerRadius))
                             .clickable { selectedProvider = PaymentProvider.MOLLIE }
                             .padding(14.dp)
                     ) {
@@ -334,9 +345,10 @@ fun PaymentBottomSheet(
                     Column(
                         modifier = Modifier
                             .fillMaxWidth()
-                            .clip(RoundedCornerShape(16.dp))
+                            .shadow(BentoShadowElevation, RoundedCornerShape(BentoInnerRadius), ambientColor = BentoShadowColor, spotColor = BentoShadowColor)
+                            .clip(RoundedCornerShape(BentoInnerRadius))
                             .background(SurfaceCard)
-                            .border(0.5.dp, SurfaceBorder, RoundedCornerShape(16.dp))
+                            .border(1.dp, SurfaceBorder, RoundedCornerShape(BentoInnerRadius))
                             .padding(12.dp),
                         verticalArrangement = Arrangement.spacedBy(8.dp)
                     ) {
@@ -352,7 +364,7 @@ fun PaymentBottomSheet(
                             Row(
                                 modifier = Modifier
                                     .fillMaxWidth()
-                                    .clip(RoundedCornerShape(10.dp))
+                                    .clip(RoundedCornerShape(BentoBadgeRadius))
                                     .background(if (isSubSelected) AccentPurple.copy(alpha = 0.2f) else Color.Transparent)
                                     .clickable { selectedMollieMethod = method }
                                     .padding(horizontal = 10.dp, vertical = 6.dp),
@@ -376,7 +388,7 @@ fun PaymentBottomSheet(
                     }
                 }
 
-                // ── Security & Environment Note ───────────────────────────
+                // ── Security Note ─────────────────────────────────────────
                 Row(
                     modifier = Modifier.fillMaxWidth(),
                     verticalAlignment = Alignment.CenterVertically,
@@ -400,7 +412,6 @@ fun PaymentBottomSheet(
                     onClick = {
                         isProcessing = true
                         coroutineScope.launch {
-                            // Simulate checkout API handshake
                             delay(1200)
                             isProcessing = false
                             paymentComplete = true
@@ -415,11 +426,16 @@ fun PaymentBottomSheet(
                     modifier = Modifier
                         .fillMaxWidth()
                         .height(54.dp)
-                        .shadow(12.dp, RoundedCornerShape(16.dp), ambientColor = if (selectedProvider == PaymentProvider.PAYPAL) Color(0xFF0079C1) else AccentPurple, spotColor = if (selectedProvider == PaymentProvider.PAYPAL) Color(0xFF0079C1) else AccentPurple),
+                        .shadow(
+                            8.dp,
+                            RoundedCornerShape(BentoInnerRadius),
+                            ambientColor = if (selectedProvider == PaymentProvider.PAYPAL) Color(0xFF0079C1).copy(alpha = 0.5f) else AccentPurple.copy(alpha = 0.5f),
+                            spotColor = if (selectedProvider == PaymentProvider.PAYPAL) Color(0xFF0079C1).copy(alpha = 0.5f) else AccentPurple.copy(alpha = 0.5f)
+                        ),
                     colors = ButtonDefaults.buttonColors(
                         containerColor = if (selectedProvider == PaymentProvider.PAYPAL) Color(0xFF0079C1) else AccentPurple
                     ),
-                    shape = RoundedCornerShape(16.dp)
+                    shape = RoundedCornerShape(BentoInnerRadius)
                 ) {
                     if (isProcessing) {
                         CircularProgressIndicator(
@@ -428,7 +444,7 @@ fun PaymentBottomSheet(
                             strokeWidth = 2.5.dp
                         )
                         Spacer(modifier = Modifier.width(10.dp))
-                        Text("Verbindung zu ${selectedProvider.displayName}...", fontSize = 14.sp, fontWeight = FontWeight.Bold)
+                        Text("Verbindung zu ${selectedProvider.displayName}...", fontSize = 14.sp, fontWeight = FontWeight.Bold, color = Color.White)
                     } else {
                         val btnIcon = if (selectedProvider == PaymentProvider.PAYPAL) Icons.Filled.AccountBalanceWallet else Icons.Filled.CreditCard
                         Icon(

@@ -22,7 +22,7 @@ enum class GameType(
 }
 
 data class TicketResult(
-    val id: String = System.currentTimeMillis().toString(),
+    val id: String = java.util.UUID.randomUUID().toString(),
     val gameType: GameType,
     val customTitle: String = gameType.title,
     val mainNumbers: List<Int>,

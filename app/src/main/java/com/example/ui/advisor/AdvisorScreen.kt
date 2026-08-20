@@ -15,13 +15,13 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.example.model.PaymentProvider
 import com.example.model.PaymentTransaction
 import com.example.ui.generator.BentoCard
 import com.example.ui.theme.*
@@ -45,7 +45,8 @@ fun AdvisorScreen(
         // ── Header Bento Tile ─────────────────────────────────────────────
         BentoCard(
             backgroundColor = SurfaceDark,
-            borderColor = SurfaceBorder
+            borderColor = SurfaceBorder,
+            shadowElevation = BentoShadowElevation
         ) {
             Row(
                 verticalAlignment = Alignment.CenterVertically,
@@ -53,8 +54,9 @@ fun AdvisorScreen(
             ) {
                 Box(
                     modifier = Modifier
-                        .size(44.dp)
-                        .clip(RoundedCornerShape(14.dp))
+                        .size(46.dp)
+                        .shadow(6.dp, RoundedCornerShape(BentoInnerRadius), ambientColor = AccentPurple.copy(alpha = 0.35f), spotColor = AccentPurple.copy(alpha = 0.35f))
+                        .clip(RoundedCornerShape(BentoInnerRadius))
                         .background(
                             Brush.linearGradient(
                                 listOf(AccentPurple, AccentPink)
@@ -96,6 +98,7 @@ fun AdvisorScreen(
                 modifier = Modifier.weight(1f),
                 backgroundColor = SurfaceDark,
                 borderColor = SurfaceBorder,
+                shadowElevation = BentoShadowElevation,
                 contentPadding = PaddingValues(14.dp)
             ) {
                 Row(
@@ -129,6 +132,7 @@ fun AdvisorScreen(
                 modifier = Modifier.weight(1f),
                 backgroundColor = SurfaceDark,
                 borderColor = SurfaceBorder,
+                shadowElevation = BentoShadowElevation,
                 contentPadding = PaddingValues(14.dp)
             ) {
                 Row(
@@ -162,7 +166,8 @@ fun AdvisorScreen(
         BentoCard(
             backgroundColor = SurfaceDark,
             borderColor = AccentAmber.copy(alpha = 0.5f),
-            cornerRadius = 20.dp
+            cornerRadius = BentoCardRadius,
+            shadowElevation = BentoShadowElevation
         ) {
             Row(
                 modifier = Modifier.fillMaxWidth(),
@@ -195,25 +200,29 @@ fun AdvisorScreen(
 
             Button(
                 onClick = { onOpenPayment("single_draw") },
-                modifier = Modifier.fillMaxWidth(),
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(48.dp)
+                    .shadow(4.dp, RoundedCornerShape(BentoInnerRadius), ambientColor = AccentAmber.copy(alpha = 0.4f), spotColor = AccentAmber.copy(alpha = 0.4f)),
                 colors = ButtonDefaults.buttonColors(containerColor = AccentAmber),
-                shape = RoundedCornerShape(12.dp)
+                shape = RoundedCornerShape(BentoInnerRadius)
             ) {
                 Icon(
                     imageVector = Icons.Filled.ShoppingCart,
                     contentDescription = "Buy",
-                    tint = Color.Black,
+                    tint = PrimaryDark,
                     modifier = Modifier.size(18.dp)
                 )
                 Spacer(modifier = Modifier.width(8.dp))
-                Text("1 Ziehung für 1,35 € kaufen (PayPal / Mollie)", color = Color.Black, fontWeight = FontWeight.Bold, fontSize = 13.sp)
+                Text("1 Ziehung für 1,35 € kaufen (PayPal / Mollie)", color = PrimaryDark, fontWeight = FontWeight.Bold, fontSize = 13.sp)
             }
         }
 
         // ── KI Tipp Generator Bento Card ─────────────────────────────────
         BentoCard(
             backgroundColor = SurfaceDark,
-            borderColor = SurfaceBorder
+            borderColor = SurfaceBorder,
+            shadowElevation = BentoShadowElevation
         ) {
             Text(
                 text = "KI-Musteranalyse & Harmonische Kombination",
@@ -235,9 +244,12 @@ fun AdvisorScreen(
                 onClick = {
                     Toast.makeText(context, "KI-Kombination berechnet und in die Zwischenablage kopiert!", Toast.LENGTH_SHORT).show()
                 },
-                modifier = Modifier.fillMaxWidth(),
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(48.dp)
+                    .shadow(4.dp, RoundedCornerShape(BentoInnerRadius), ambientColor = AccentPurple.copy(alpha = 0.35f), spotColor = AccentPurple.copy(alpha = 0.35f)),
                 colors = ButtonDefaults.buttonColors(containerColor = AccentPurple),
-                shape = RoundedCornerShape(12.dp)
+                shape = RoundedCornerShape(BentoInnerRadius)
             ) {
                 Icon(
                     imageVector = Icons.Filled.Psychology,
@@ -253,7 +265,8 @@ fun AdvisorScreen(
         BentoCard(
             backgroundColor = SurfaceDark,
             borderColor = AccentPurple.copy(alpha = 0.5f),
-            cornerRadius = 24.dp,
+            cornerRadius = BentoCardRadiusLarge,
+            shadowElevation = BentoShadowElevation + 2.dp,
             contentPadding = PaddingValues(18.dp)
         ) {
             Column(
@@ -301,13 +314,13 @@ fun AdvisorScreen(
 
             Spacer(modifier = Modifier.height(16.dp))
 
-            // Warning / Notice Banner
+            // Info Banner with Bento rounding
             Box(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .clip(RoundedCornerShape(12.dp))
+                    .clip(RoundedCornerShape(BentoInnerRadius))
                     .background(Color(0xFF003087).copy(alpha = 0.2f))
-                    .border(1.dp, Color(0xFF0079C1).copy(alpha = 0.4f), RoundedCornerShape(12.dp))
+                    .border(1.dp, Color(0xFF0079C1).copy(alpha = 0.4f), RoundedCornerShape(BentoInnerRadius))
                     .padding(12.dp)
             ) {
                 Row(
@@ -338,11 +351,12 @@ fun AdvisorScreen(
                 },
                 modifier = Modifier
                     .fillMaxWidth()
-                    .height(48.dp),
+                    .height(48.dp)
+                    .shadow(4.dp, RoundedCornerShape(BentoInnerRadius), ambientColor = Color(0xFF0079C1).copy(alpha = 0.4f), spotColor = Color(0xFF0079C1).copy(alpha = 0.4f)),
                 colors = ButtonDefaults.buttonColors(
                     containerColor = Color(0xFF00457C)
                 ),
-                shape = RoundedCornerShape(14.dp)
+                shape = RoundedCornerShape(BentoInnerRadius)
             ) {
                 Icon(
                     imageVector = Icons.Filled.AccountBalanceWallet,
@@ -367,11 +381,12 @@ fun AdvisorScreen(
                 },
                 modifier = Modifier
                     .fillMaxWidth()
-                    .height(48.dp),
+                    .height(48.dp)
+                    .shadow(4.dp, RoundedCornerShape(BentoInnerRadius), ambientColor = AccentPurple.copy(alpha = 0.35f), spotColor = AccentPurple.copy(alpha = 0.35f)),
                 colors = ButtonDefaults.buttonColors(
                     containerColor = Color(0xFF8B5CF6)
                 ),
-                shape = RoundedCornerShape(14.dp)
+                shape = RoundedCornerShape(BentoInnerRadius)
             ) {
                 Icon(
                     imageVector = Icons.Filled.CreditCard,
@@ -392,7 +407,8 @@ fun AdvisorScreen(
         if (transactions.isNotEmpty()) {
             BentoCard(
                 backgroundColor = SurfaceDark,
-                borderColor = SurfaceBorder
+                borderColor = SurfaceBorder,
+                shadowElevation = BentoShadowElevation
             ) {
                 Text(
                     text = "Zahlungshistorie & Belege",
@@ -407,9 +423,11 @@ fun AdvisorScreen(
                         Row(
                             modifier = Modifier
                                 .fillMaxWidth()
-                                .clip(RoundedCornerShape(10.dp))
-                                .background(SurfaceCard)
-                                .padding(10.dp),
+                                .shadow(2.dp, RoundedCornerShape(BentoInnerRadius), ambientColor = BentoShadowColor, spotColor = BentoShadowColor)
+                                .clip(RoundedCornerShape(BentoInnerRadius))
+                                .background(SurfaceCardElevated)
+                                .border(1.dp, SurfaceBorderLight, RoundedCornerShape(BentoInnerRadius))
+                                .padding(12.dp),
                             verticalAlignment = Alignment.CenterVertically,
                             horizontalArrangement = Arrangement.SpaceBetween
                         ) {

@@ -2,11 +2,14 @@ package com.example.ui.saved
 
 import android.widget.Toast
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.BookmarkBorder
@@ -17,6 +20,8 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalClipboardManager
 import androidx.compose.ui.platform.LocalContext
@@ -47,10 +52,11 @@ fun SavedScreen(
             .padding(16.dp),
         verticalArrangement = Arrangement.spacedBy(14.dp)
     ) {
-        // Header
+        // Header Bento Card
         BentoCard(
             backgroundColor = SurfaceDark,
-            borderColor = SurfaceBorder
+            borderColor = SurfaceBorder,
+            shadowElevation = BentoShadowElevation
         ) {
             Row(
                 modifier = Modifier.fillMaxWidth(),
@@ -74,7 +80,8 @@ fun SavedScreen(
                 if (savedTickets.isNotEmpty()) {
                     TextButton(
                         onClick = onClearAll,
-                        colors = ButtonDefaults.textButtonColors(contentColor = HotRed)
+                        colors = ButtonDefaults.textButtonColors(contentColor = HotRed),
+                        shape = RoundedCornerShape(BentoInnerRadius)
                     ) {
                         Text("Alle löschen", fontSize = 12.sp, fontWeight = FontWeight.SemiBold)
                     }
@@ -93,12 +100,22 @@ fun SavedScreen(
                     horizontalAlignment = Alignment.CenterHorizontally,
                     verticalArrangement = Arrangement.spacedBy(12.dp)
                 ) {
-                    Icon(
-                        imageVector = Icons.Filled.BookmarkBorder,
-                        contentDescription = "Empty",
-                        tint = TextMuted,
-                        modifier = Modifier.size(56.dp)
-                    )
+                    Box(
+                        modifier = Modifier
+                            .size(72.dp)
+                            .shadow(BentoShadowElevation, CircleShape, ambientColor = BentoShadowColor, spotColor = BentoShadowColor)
+                            .clip(CircleShape)
+                            .background(SurfaceDark)
+                            .border(1.dp, SurfaceBorder, CircleShape),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Icon(
+                            imageVector = Icons.Filled.BookmarkBorder,
+                            contentDescription = "Empty",
+                            tint = TextMuted,
+                            modifier = Modifier.size(36.dp)
+                        )
+                    }
                     Text(
                         text = "Noch keine Zahlen gespeichert",
                         color = TextSecondary,
@@ -123,6 +140,8 @@ fun SavedScreen(
                     BentoCard(
                         backgroundColor = SurfaceDark,
                         borderColor = SurfaceBorder,
+                        cornerRadius = BentoCardRadius,
+                        shadowElevation = BentoShadowElevation,
                         contentPadding = PaddingValues(14.dp)
                     ) {
                         // Top info row
@@ -145,37 +164,54 @@ fun SavedScreen(
                                 )
                             }
 
-                            Row {
-                                IconButton(
-                                    onClick = {
-                                        clipboardManager.setText(AnnotatedString(ticket.toShareableText()))
-                                        Toast.makeText(context, "Kopiert!", Toast.LENGTH_SHORT).show()
-                                    },
-                                    modifier = Modifier.size(32.dp)
+                            Row(
+                                horizontalArrangement = Arrangement.spacedBy(6.dp),
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                // Copy Button with rounded Bento container
+                                Box(
+                                    modifier = Modifier
+                                        .size(32.dp)
+                                        .shadow(2.dp, RoundedCornerShape(BentoBadgeRadius), ambientColor = BentoShadowColor, spotColor = BentoShadowColor)
+                                        .clip(RoundedCornerShape(BentoBadgeRadius))
+                                        .background(SurfaceCardElevated)
+                                        .border(1.dp, SurfaceBorderLight, RoundedCornerShape(BentoBadgeRadius))
+                                        .clickable {
+                                            clipboardManager.setText(AnnotatedString(ticket.toShareableText()))
+                                            Toast.makeText(context, "Kopiert!", Toast.LENGTH_SHORT).show()
+                                        },
+                                    contentAlignment = Alignment.Center
                                 ) {
                                     Icon(
                                         imageVector = Icons.Filled.ContentCopy,
                                         contentDescription = "Copy",
                                         tint = TextSecondary,
-                                        modifier = Modifier.size(16.dp)
+                                        modifier = Modifier.size(15.dp)
                                     )
                                 }
 
-                                IconButton(
-                                    onClick = { onDeleteTicket(ticket.id) },
-                                    modifier = Modifier.size(32.dp)
+                                // Delete Button with rounded Bento container
+                                Box(
+                                    modifier = Modifier
+                                        .size(32.dp)
+                                        .shadow(2.dp, RoundedCornerShape(BentoBadgeRadius), ambientColor = HotRed.copy(alpha = 0.2f), spotColor = HotRed.copy(alpha = 0.2f))
+                                        .clip(RoundedCornerShape(BentoBadgeRadius))
+                                        .background(DeepRed.copy(alpha = 0.2f))
+                                        .border(1.dp, HotRed.copy(alpha = 0.5f), RoundedCornerShape(BentoBadgeRadius))
+                                        .clickable { onDeleteTicket(ticket.id) },
+                                    contentAlignment = Alignment.Center
                                 ) {
                                     Icon(
                                         imageVector = Icons.Filled.DeleteOutline,
                                         contentDescription = "Delete",
-                                        tint = HotRed.copy(alpha = 0.8f),
-                                        modifier = Modifier.size(18.dp)
+                                        tint = HotRed,
+                                        modifier = Modifier.size(16.dp)
                                     )
                                 }
                             }
                         }
 
-                        Spacer(modifier = Modifier.height(10.dp))
+                        Spacer(modifier = Modifier.height(12.dp))
 
                         // Balls
                         if (ticket.mainNumbers.size > 10) {
@@ -227,8 +263,8 @@ fun SavedScreen(
                             Row(
                                 horizontalArrangement = Arrangement.spacedBy(6.dp)
                             ) {
-                                BentoStatBadge(label = "Summe", value = "${ticket.sum}")
-                                BentoStatBadge(label = "G/U", value = "${ticket.evenCount}/${ticket.oddCount}")
+                                BentoStatBadge(label = "Summe", value = "${ticket.sum}", accentColor = ElectricBlue)
+                                BentoStatBadge(label = "G/U", value = "${ticket.evenCount}/${ticket.oddCount}", accentColor = AccentPurple)
                             }
                         }
                     }

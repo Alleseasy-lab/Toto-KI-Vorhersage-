@@ -12,6 +12,8 @@ import androidx.compose.material.icons.filled.Casino
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
@@ -90,13 +92,21 @@ fun MainScreen() {
     }
 
     Scaffold(
+        containerColor = DarkBackground,
         bottomBar = {
             Surface(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .border(0.5.dp, SurfaceBorder, RoundedCornerShape(topStart = 20.dp, topEnd = 20.dp)),
+                    .shadow(
+                        elevation = BentoShadowElevation + 4.dp,
+                        shape = RoundedCornerShape(topStart = BentoCardRadiusLarge, topEnd = BentoCardRadiusLarge),
+                        ambientColor = BentoShadowColor,
+                        spotColor = BentoShadowColor
+                    )
+                    .clip(RoundedCornerShape(topStart = BentoCardRadiusLarge, topEnd = BentoCardRadiusLarge))
+                    .border(1.dp, SurfaceBorder, RoundedCornerShape(topStart = BentoCardRadiusLarge, topEnd = BentoCardRadiusLarge)),
                 color = SurfaceDark,
-                shape = RoundedCornerShape(topStart = 20.dp, topEnd = 20.dp)
+                shape = RoundedCornerShape(topStart = BentoCardRadiusLarge, topEnd = BentoCardRadiusLarge)
             ) {
                 NavigationBar(
                     containerColor = SurfaceDark,

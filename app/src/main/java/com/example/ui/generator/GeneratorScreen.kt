@@ -2,6 +2,8 @@ package com.example.ui.generator
 
 import android.widget.Toast
 import androidx.compose.animation.*
+import androidx.compose.animation.core.FastOutSlowInEasing
+import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -59,9 +61,23 @@ fun GeneratorScreen(
     var customSuperMax by remember { mutableIntStateOf(9) }
 
     var currentTicket by remember {
-        mutableStateOf(GeneratorLogic.draw(selectedGame))
+        mutableStateOf(
+            GeneratorLogic.draw(GameType.LOTTO_6_49)
+        )
     }
 
+    // History of generated tickets for frequency distribution analysis
+    var drawHistory by remember {
+        mutableStateOf(
+            listOf(
+                currentTicket,
+                GeneratorLogic.draw(GameType.LOTTO_6_49),
+                GeneratorLogic.draw(GameType.LOTTO_6_49),
+                GeneratorLogic.draw(GameType.EUROJACKPOT),
+                GeneratorLogic.draw(GameType.LOTTO_6_49)
+            )
+        )
+    }
     var isDrawing by remember { mutableStateOf(false) }
 
     val scrollState = rememberScrollState()
@@ -71,7 +87,7 @@ fun GeneratorScreen(
             val success = onUseDraw()
             if (success) {
                 isDrawing = true
-                currentTicket = GeneratorLogic.draw(
+                val newTicket = GeneratorLogic.draw(
                     gameType = selectedGame,
                     customCount = customCount,
                     customMin = customMin,
@@ -80,6 +96,8 @@ fun GeneratorScreen(
                     customSuperMin = customSuperMin,
                     customSuperMax = customSuperMax
                 )
+                currentTicket = newTicket
+                drawHistory = listOf(newTicket) + drawHistory
                 isDrawing = false
                 Toast.makeText(context, "1 Ziehung eingelöst (Verbleibend: ${availableDraws - 1})", Toast.LENGTH_SHORT).show()
             }
@@ -96,7 +114,7 @@ fun GeneratorScreen(
                 onTopUpSuccess(pkg, provider, method)
                 showPaymentModal = false
                 // Auto execute first draw after purchase
-                currentTicket = GeneratorLogic.draw(
+                val newTicket = GeneratorLogic.draw(
                     gameType = selectedGame,
                     customCount = customCount,
                     customMin = customMin,
@@ -105,6 +123,8 @@ fun GeneratorScreen(
                     customSuperMin = customSuperMin,
                     customSuperMax = customSuperMax
                 )
+                currentTicket = newTicket
+                drawHistory = listOf(newTicket) + drawHistory
             }
         )
     }
@@ -117,10 +137,11 @@ fun GeneratorScreen(
             .padding(16.dp),
         verticalArrangement = Arrangement.spacedBy(14.dp)
     ) {
-        // ── Header Bento Tile ─────────────────────────────────────────────
+        // ── Header Bento Card ─────────────────────────────────────────────
         BentoCard(
             backgroundColor = SurfaceDark,
-            borderColor = SurfaceBorder.copy(alpha = 0.6f),
+            borderColor = SurfaceBorder,
+            shadowElevation = BentoShadowElevation,
             contentPadding = PaddingValues(16.dp)
         ) {
             Row(
@@ -134,8 +155,9 @@ fun GeneratorScreen(
                 ) {
                     Box(
                         modifier = Modifier
-                            .size(44.dp)
-                            .clip(RoundedCornerShape(14.dp))
+                            .size(46.dp)
+                            .shadow(6.dp, RoundedCornerShape(BentoInnerRadius), ambientColor = AccentAmber.copy(alpha = 0.3f), spotColor = AccentAmber.copy(alpha = 0.3f))
+                            .clip(RoundedCornerShape(BentoInnerRadius))
                             .background(
                                 Brush.linearGradient(
                                     listOf(AccentAmber, GradientOrange)
@@ -167,28 +189,29 @@ fun GeneratorScreen(
                     }
                 }
 
-                // Balance Pill Button
+                // Balance Pill Button with subtle Bento shadow
                 Box(
                     modifier = Modifier
-                        .clip(RoundedCornerShape(12.dp))
-                        .background(if (availableDraws > 0) AccentEmerald.copy(alpha = 0.2f) else DeepRed.copy(alpha = 0.25f))
-                        .border(1.dp, if (availableDraws > 0) AccentEmerald else HotRed, RoundedCornerShape(12.dp))
+                        .shadow(4.dp, RoundedCornerShape(BentoInnerRadius), ambientColor = if (availableDraws > 0) AccentEmerald.copy(alpha = 0.25f) else HotRed.copy(alpha = 0.25f), spotColor = if (availableDraws > 0) AccentEmerald.copy(alpha = 0.25f) else HotRed.copy(alpha = 0.25f))
+                        .clip(RoundedCornerShape(BentoInnerRadius))
+                        .background(if (availableDraws > 0) AccentEmerald.copy(alpha = 0.18f) else DeepRed.copy(alpha = 0.25f))
+                        .border(1.dp, if (availableDraws > 0) AccentEmerald.copy(alpha = 0.7f) else HotRed.copy(alpha = 0.7f), RoundedCornerShape(BentoInnerRadius))
                         .clickable { showPaymentModal = true }
-                        .padding(horizontal = 10.dp, vertical = 6.dp)
+                        .padding(horizontal = 12.dp, vertical = 7.dp)
                 ) {
                     Row(
                         verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.spacedBy(4.dp)
+                        horizontalArrangement = Arrangement.spacedBy(5.dp)
                     ) {
                         Icon(
                             imageVector = Icons.Filled.ConfirmationNumber,
                             contentDescription = "Ticket",
                             tint = if (availableDraws > 0) AccentEmerald else HotRed,
-                            modifier = Modifier.size(14.dp)
+                            modifier = Modifier.size(15.dp)
                         )
                         Text(
                             text = "$availableDraws Ziehung${if (availableDraws != 1) "en" else ""}",
-                            fontSize = 11.sp,
+                            fontSize = 12.sp,
                             fontWeight = FontWeight.Bold,
                             color = if (availableDraws > 0) AccentEmerald else Color(0xFFFF9999)
                         )
@@ -201,15 +224,16 @@ fun GeneratorScreen(
         Box(
             modifier = Modifier
                 .fillMaxWidth()
-                .clip(RoundedCornerShape(16.dp))
+                .shadow(BentoShadowElevation, RoundedCornerShape(BentoCardRadius), ambientColor = Color(0xFF003087).copy(alpha = 0.35f), spotColor = Color(0xFF003087).copy(alpha = 0.35f))
+                .clip(RoundedCornerShape(BentoCardRadius))
                 .background(
                     Brush.horizontalGradient(
-                        listOf(Color(0xFF003087).copy(alpha = 0.35f), Color(0xFF8B5CF6).copy(alpha = 0.25f))
+                        listOf(Color(0xFF002255), Color(0xFF1F1A3A))
                     )
                 )
-                .border(1.dp, Color(0xFF0079C1).copy(alpha = 0.4f), RoundedCornerShape(16.dp))
+                .border(1.dp, Color(0xFF0079C1).copy(alpha = 0.4f), RoundedCornerShape(BentoCardRadius))
                 .clickable { showPaymentModal = true }
-                .padding(horizontal = 14.dp, vertical = 10.dp)
+                .padding(horizontal = 16.dp, vertical = 12.dp)
         ) {
             Row(
                 modifier = Modifier.fillMaxWidth(),
@@ -218,20 +242,21 @@ fun GeneratorScreen(
             ) {
                 Row(
                     verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(10.dp)
+                    horizontalArrangement = Arrangement.spacedBy(12.dp)
                 ) {
                     Box(
                         modifier = Modifier
-                            .size(34.dp)
+                            .size(38.dp)
                             .clip(CircleShape)
-                            .background(AccentAmber.copy(alpha = 0.2f)),
+                            .background(AccentAmber.copy(alpha = 0.2f))
+                            .border(1.dp, AccentAmber.copy(alpha = 0.4f), CircleShape),
                         contentAlignment = Alignment.Center
                     ) {
                         Icon(
                             imageVector = Icons.Filled.AccountBalanceWallet,
                             contentDescription = "Wallet",
                             tint = AccentAmber,
-                            modifier = Modifier.size(18.dp)
+                            modifier = Modifier.size(20.dp)
                         )
                     }
                     Column {
@@ -252,16 +277,18 @@ fun GeneratorScreen(
                 Button(
                     onClick = { showPaymentModal = true },
                     colors = ButtonDefaults.buttonColors(containerColor = ElectricBlue),
-                    shape = RoundedCornerShape(10.dp),
-                    contentPadding = PaddingValues(horizontal = 12.dp, vertical = 4.dp),
-                    modifier = Modifier.height(32.dp)
+                    shape = RoundedCornerShape(BentoInnerRadius),
+                    contentPadding = PaddingValues(horizontal = 14.dp, vertical = 6.dp),
+                    modifier = Modifier
+                        .height(36.dp)
+                        .shadow(4.dp, RoundedCornerShape(BentoInnerRadius), ambientColor = ElectricBlue.copy(alpha = 0.4f), spotColor = ElectricBlue.copy(alpha = 0.4f))
                 ) {
-                    Text("+ Aufladen", fontSize = 11.sp, fontWeight = FontWeight.Bold)
+                    Text("+ Aufladen", fontSize = 11.sp, fontWeight = FontWeight.Bold, color = PrimaryDark)
                 }
             }
         }
 
-        // ── Game Type Chips Row ───────────────────────────────────────────
+        // ── Game Selector Bento Scroll / Grid ─────────────────────────────
         Row(
             modifier = Modifier
                 .fillMaxWidth()
@@ -270,133 +297,182 @@ fun GeneratorScreen(
         ) {
             GameType.entries.forEach { game ->
                 val isSelected = selectedGame == game
-                val chipBackground = if (isSelected) RoyalBlue else SurfaceCard
+                val chipBg = if (isSelected) SurfaceCardElevated else SurfaceCard
                 val chipBorder = if (isSelected) ElectricBlue else SurfaceBorder
-                val textColor = if (isSelected) Color.White else TextSecondary
+                val textColor = if (isSelected) ElectricBlue else TextSecondary
 
                 Box(
                     modifier = Modifier
-                        .clip(RoundedCornerShape(14.dp))
-                        .background(chipBackground)
-                        .border(1.dp, chipBorder, RoundedCornerShape(14.dp))
+                        .shadow(if (isSelected) 6.dp else 2.dp, RoundedCornerShape(BentoInnerRadius), ambientColor = if (isSelected) ElectricBlue.copy(alpha = 0.2f) else BentoShadowColor, spotColor = if (isSelected) ElectricBlue.copy(alpha = 0.2f) else BentoShadowColor)
+                        .clip(RoundedCornerShape(BentoInnerRadius))
+                        .background(chipBg)
+                        .border(1.2.dp, chipBorder, RoundedCornerShape(BentoInnerRadius))
                         .clickable {
                             selectedGame = game
                             showCustomizer = (game == GameType.CUSTOM)
                         }
-                        .padding(horizontal = 14.dp, vertical = 10.dp),
+                        .padding(horizontal = 15.dp, vertical = 10.dp),
                     contentAlignment = Alignment.Center
                 ) {
-                    Text(
-                        text = game.title,
-                        color = textColor,
-                        fontSize = 13.sp,
-                        fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Medium
-                    )
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(6.dp)
+                    ) {
+                        if (isSelected) {
+                            Icon(
+                                imageVector = Icons.Filled.Check,
+                                contentDescription = "Active",
+                                tint = ElectricBlue,
+                                modifier = Modifier.size(14.dp)
+                            )
+                        }
+                        Text(
+                            text = game.title,
+                            fontSize = 13.sp,
+                            fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Medium,
+                            color = textColor
+                        )
+                    }
                 }
             }
         }
 
-        // ── Filter info badge ─────────────────────────────────────────────
-        Box(
-            modifier = Modifier
-                .fillMaxWidth()
-                .clip(RoundedCornerShape(12.dp))
-                .background(SurfaceCard.copy(alpha = 0.6f))
-                .border(0.5.dp, SurfaceBorder, RoundedCornerShape(12.dp))
-                .padding(horizontal = 12.dp, vertical = 8.dp)
-        ) {
-            Row(
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(8.dp)
-            ) {
-                Icon(
-                    imageVector = Icons.Filled.FilterAlt,
-                    contentDescription = "Filter",
-                    tint = TextMuted,
-                    modifier = Modifier.size(16.dp)
-                )
-                val filterText = when (selectedGame) {
-                    GameType.LOTTO_6_49 -> "6 aus [1 bis 49] + 1x Superzahl [0–9]"
-                    GameType.EUROJACKPOT -> "5 aus [1 bis 50] + 2x Eurozahlen [1–12]"
-                    GameType.TOTO_13 -> "13 Spielausgänge (1 = Heim, 0 = Remis, 2 = Gast)"
-                    GameType.CUSTOM -> "$customCount aus [$customMin bis $customMax] + ${customSuperCount}x Super [$customSuperMin–$customSuperMax]"
-                }
-                Text(
-                    text = filterText,
-                    fontSize = 12.sp,
-                    color = TextSecondary,
-                    fontWeight = FontWeight.Medium
-                )
-            }
-        }
-
-        // ── Customizer Bento Sheet ────────────────────────────────────────
+        // ── Customizer Bento Panel (Expanded for CUSTOM or when opened) ──
         AnimatedVisibility(
-            visible = showCustomizer,
-            enter = expandVertically() + fadeIn(),
-            exit = shrinkVertically() + fadeOut()
+            visible = showCustomizer || selectedGame == GameType.CUSTOM,
+            enter = fadeIn() + expandVertically(),
+            exit = fadeOut() + shrinkVertically()
         ) {
             BentoCard(
-                backgroundColor = SurfaceDark,
-                borderColor = AccentPurple.copy(alpha = 0.6f)
+                backgroundColor = SurfaceCardElevated,
+                borderColor = AccentPurple.copy(alpha = 0.6f),
+                cornerRadius = BentoCardRadius,
+                shadowElevation = BentoShadowElevation,
+                contentPadding = PaddingValues(16.dp)
             ) {
-                Text(
-                    text = "Generator Anpassen",
-                    fontWeight = FontWeight.Bold,
-                    fontSize = 15.sp,
-                    color = AccentPurple
-                )
-                Spacer(modifier = Modifier.height(10.dp))
-
                 Row(
                     modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.spacedBy(12.dp)
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.SpaceBetween
+                ) {
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
+                        Icon(
+                            imageVector = Icons.Filled.Tune,
+                            contentDescription = "Customize",
+                            tint = AccentPurple,
+                            modifier = Modifier.size(20.dp)
+                        )
+                        Text(
+                            text = "Individuelle Parameter konfigurieren",
+                            fontWeight = FontWeight.Bold,
+                            fontSize = 14.sp,
+                            color = TextPrimary
+                        )
+                    }
+                    IconButton(
+                        onClick = { showCustomizer = false },
+                        modifier = Modifier.size(28.dp)
+                    ) {
+                        Icon(Icons.Filled.Close, contentDescription = "Close", tint = TextMuted, modifier = Modifier.size(18.dp))
+                    }
+                }
+
+                Spacer(modifier = Modifier.height(14.dp))
+
+                // Number of picks slider
+                Text(
+                    text = "Anzahl Hauptzahlen: $customCount",
+                    fontSize = 12.sp,
+                    color = TextSecondary,
+                    fontWeight = FontWeight.SemiBold
+                )
+                Slider(
+                    value = customCount.toFloat(),
+                    onValueChange = { customCount = it.toInt() },
+                    valueRange = 1f..15f,
+                    steps = 13,
+                    colors = SliderDefaults.colors(
+                        thumbColor = AccentPurple,
+                        activeTrackColor = AccentPurple,
+                        inactiveTrackColor = SurfaceBorder
+                    )
+                )
+
+                Spacer(modifier = Modifier.height(8.dp))
+
+                // Range slider representation
+                Text(
+                    text = "Zahlenbereich: $customMin bis $customMax",
+                    fontSize = 12.sp,
+                    color = TextSecondary,
+                    fontWeight = FontWeight.SemiBold
+                )
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(10.dp),
+                    verticalAlignment = Alignment.CenterVertically
                 ) {
                     Column(modifier = Modifier.weight(1f)) {
-                        Text("Anzahl Zahlen: $customCount", fontSize = 12.sp, color = TextSecondary)
+                        Text("Min: $customMin", fontSize = 11.sp, color = TextMuted)
                         Slider(
-                            value = customCount.toFloat(),
-                            onValueChange = { customCount = it.toInt() },
-                            valueRange = 1f..15f,
-                            steps = 13,
+                            value = customMin.toFloat(),
+                            onValueChange = {
+                                val v = it.toInt()
+                                if (v < customMax) customMin = v
+                            },
+                            valueRange = 1f..50f,
                             colors = SliderDefaults.colors(
-                                thumbColor = AccentPurple,
-                                activeTrackColor = AccentPurple
+                                thumbColor = ElectricBlue,
+                                activeTrackColor = ElectricBlue,
+                                inactiveTrackColor = SurfaceBorder
                             )
                         )
                     }
+
                     Column(modifier = Modifier.weight(1f)) {
-                        Text("Zahlenbereich: $customMin – $customMax", fontSize = 12.sp, color = TextSecondary)
+                        Text("Max: $customMax", fontSize = 11.sp, color = TextMuted)
                         Slider(
                             value = customMax.toFloat(),
-                            onValueChange = { customMax = it.toInt() },
+                            onValueChange = {
+                                val v = it.toInt()
+                                if (v > customMin) customMax = v
+                            },
                             valueRange = 10f..100f,
-                            steps = 17,
                             colors = SliderDefaults.colors(
                                 thumbColor = ElectricBlue,
-                                activeTrackColor = ElectricBlue
+                                activeTrackColor = ElectricBlue,
+                                inactiveTrackColor = SurfaceBorder
                             )
                         )
                     }
                 }
 
+                Spacer(modifier = Modifier.height(8.dp))
+
+                // Super numbers count
                 Row(
                     modifier = Modifier.fillMaxWidth(),
+                    verticalAlignment = Alignment.CenterVertically,
                     horizontalArrangement = Arrangement.spacedBy(12.dp)
                 ) {
                     Column(modifier = Modifier.weight(1f)) {
-                        Text("Superzahlen: $customSuperCount", fontSize = 12.sp, color = TextSecondary)
+                        Text("Superzahlen: $customSuperCount", fontSize = 12.sp, color = TextSecondary, fontWeight = FontWeight.SemiBold)
                         Slider(
                             value = customSuperCount.toFloat(),
                             onValueChange = { customSuperCount = it.toInt() },
-                            valueRange = 0f..3f,
-                            steps = 2,
+                            valueRange = 0f..4f,
+                            steps = 3,
                             colors = SliderDefaults.colors(
                                 thumbColor = AccentAmber,
-                                activeTrackColor = AccentAmber
+                                activeTrackColor = AccentAmber,
+                                inactiveTrackColor = SurfaceBorder
                             )
                         )
                     }
+
                     Column(
                         modifier = Modifier.weight(1f),
                         horizontalAlignment = Alignment.CenterHorizontally
@@ -404,10 +480,13 @@ fun GeneratorScreen(
                         Button(
                             onClick = { triggerDraw() },
                             colors = ButtonDefaults.buttonColors(containerColor = AccentPurple),
-                            shape = RoundedCornerShape(12.dp),
-                            modifier = Modifier.fillMaxWidth().padding(top = 10.dp)
+                            shape = RoundedCornerShape(BentoInnerRadius),
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(top = 10.dp)
+                                .shadow(4.dp, RoundedCornerShape(BentoInnerRadius), ambientColor = AccentPurple.copy(alpha = 0.3f), spotColor = AccentPurple.copy(alpha = 0.3f))
                         ) {
-                            Text("Übernehmen", fontSize = 12.sp, fontWeight = FontWeight.Bold)
+                            Text("Übernehmen", fontSize = 12.sp, fontWeight = FontWeight.Bold, color = Color.White)
                         }
                     }
                 }
@@ -418,7 +497,8 @@ fun GeneratorScreen(
         BentoCard(
             backgroundColor = SurfaceDark,
             borderColor = SurfaceBorder,
-            cornerRadius = 24.dp,
+            cornerRadius = BentoCardRadiusLarge,
+            shadowElevation = BentoShadowElevation + 2.dp,
             contentPadding = PaddingValues(18.dp)
         ) {
             // Card Header
@@ -429,149 +509,207 @@ fun GeneratorScreen(
             ) {
                 Text(
                     text = currentTicket.customTitle,
-                    fontSize = 16.sp,
+                    fontSize = 17.sp,
                     fontWeight = FontWeight.Bold,
                     color = TextPrimary
                 )
 
-                IconButton(
-                    onClick = {
-                        clipboardManager.setText(AnnotatedString(currentTicket.toShareableText()))
-                        Toast.makeText(context, "Zahlen in die Zwischenablage kopiert", Toast.LENGTH_SHORT).show()
-                    },
-                    modifier = Modifier.size(32.dp)
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(6.dp)
                 ) {
-                    Icon(
-                        imageVector = Icons.Filled.ContentCopy,
-                        contentDescription = "Kopieren",
-                        tint = TextSecondary,
-                        modifier = Modifier.size(18.dp)
-                    )
+                    // Copy icon button with Bento container
+                    Box(
+                        modifier = Modifier
+                            .size(34.dp)
+                            .shadow(2.dp, RoundedCornerShape(BentoBadgeRadius), ambientColor = BentoShadowColor, spotColor = BentoShadowColor)
+                            .clip(RoundedCornerShape(BentoBadgeRadius))
+                            .background(SurfaceCardElevated)
+                            .border(1.dp, SurfaceBorderLight, RoundedCornerShape(BentoBadgeRadius))
+                            .clickable {
+                                clipboardManager.setText(AnnotatedString(currentTicket.toShareableText()))
+                                Toast.makeText(context, "Kombination kopiert!", Toast.LENGTH_SHORT).show()
+                            },
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Icon(
+                            imageVector = Icons.Filled.ContentCopy,
+                            contentDescription = "Copy",
+                            tint = TextSecondary,
+                            modifier = Modifier.size(16.dp)
+                        )
+                    }
+
+                    // Customize Button
+                    Box(
+                        modifier = Modifier
+                            .size(34.dp)
+                            .shadow(2.dp, RoundedCornerShape(BentoBadgeRadius), ambientColor = BentoShadowColor, spotColor = BentoShadowColor)
+                            .clip(RoundedCornerShape(BentoBadgeRadius))
+                            .background(SurfaceCardElevated)
+                            .border(1.dp, SurfaceBorderLight, RoundedCornerShape(BentoBadgeRadius))
+                            .clickable { showCustomizer = !showCustomizer },
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Icon(
+                            imageVector = Icons.Filled.Tune,
+                            contentDescription = "Customize",
+                            tint = if (showCustomizer) ElectricBlue else TextSecondary,
+                            modifier = Modifier.size(16.dp)
+                        )
+                    }
                 }
             }
 
-            HorizontalDivider(
-                modifier = Modifier.padding(vertical = 12.dp),
-                thickness = 0.5.dp,
-                color = SurfaceBorder
-            )
+            Spacer(modifier = Modifier.height(18.dp))
 
-            // Numbers Section
-            if (selectedGame == GameType.TOTO_13) {
-                Text(
-                    text = "Spielausgänge (13er Tipp)",
-                    fontSize = 12.sp,
-                    color = TextSecondary,
-                    modifier = Modifier.padding(bottom = 8.dp)
-                )
-                // 13 Toto outputs row/grid
-                Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .horizontalScroll(rememberScrollState()),
-                    horizontalArrangement = Arrangement.spacedBy(4.dp)
-                ) {
-                    currentTicket.mainNumbers.forEachIndexed { idx, symbol ->
-                        TotoBadge(symbol = symbol, index = idx)
-                    }
-                }
-            } else {
-                // Main Lottery Balls
-                Text(
-                    text = "Hauptzahlen (${currentTicket.mainNumbers.size} aus ${if (selectedGame == GameType.CUSTOM) customMax else selectedGame.maxVal})",
-                    fontSize = 12.sp,
-                    color = TextSecondary,
-                    modifier = Modifier.align(Alignment.CenterHorizontally).padding(bottom = 12.dp)
-                )
-
-                // Balls layout
-                Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .horizontalScroll(rememberScrollState()),
-                    horizontalArrangement = Arrangement.spacedBy(8.dp, Alignment.CenterHorizontally),
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    currentTicket.mainNumbers.forEachIndexed { index, number ->
-                        LotteryBall(
-                            number = number,
-                            delayMs = index * 40L
+            // Main Numbers Container with smooth fade-in & scale-up animation
+            AnimatedContent(
+                targetState = currentTicket,
+                transitionSpec = {
+                    (fadeIn(animationSpec = tween(320, easing = FastOutSlowInEasing)) +
+                     scaleIn(initialScale = 0.88f, animationSpec = tween(320, easing = FastOutSlowInEasing)))
+                        .togetherWith(
+                            fadeOut(animationSpec = tween(150, easing = FastOutSlowInEasing)) +
+                            scaleOut(targetScale = 0.94f, animationSpec = tween(150, easing = FastOutSlowInEasing))
                         )
-                    }
-                }
-
-                // Super numbers if available
-                if (currentTicket.superNumbers.isNotEmpty()) {
-                    Spacer(modifier = Modifier.height(16.dp))
-                    Row(
+                },
+                label = "bento_numbers_transition"
+            ) { targetTicket ->
+                if (targetTicket.gameType == GameType.TOTO_13) {
+                    // Toto Grid representation
+                    Column(
                         modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.Center,
+                        verticalArrangement = Arrangement.spacedBy(6.dp)
+                    ) {
+                        Text(
+                            text = "13er Tippreihe (1 = Heimsieg, 0 = Remis, 2 = Auswärtssieg):",
+                            fontSize = 11.sp,
+                            color = TextSecondary
+                        )
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .horizontalScroll(rememberScrollState()),
+                            horizontalArrangement = Arrangement.spacedBy(4.dp)
+                        ) {
+                            targetTicket.mainNumbers.forEachIndexed { idx, symbol ->
+                                TotoBadge(
+                                    symbol = symbol,
+                                    index = idx,
+                                    delayMs = idx * 35L,
+                                    generationKey = "${targetTicket.id}_$idx"
+                                )
+                            }
+                        }
+                    }
+                } else {
+                    // Ball Representation
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .horizontalScroll(rememberScrollState()),
+                        horizontalArrangement = Arrangement.spacedBy(8.dp),
                         verticalAlignment = Alignment.CenterVertically
                     ) {
-                        Icon(
-                            imageVector = Icons.Filled.Star,
-                            contentDescription = "Super",
-                            tint = AccentAmber,
-                            modifier = Modifier.size(14.dp)
-                        )
-                        Spacer(modifier = Modifier.width(4.dp))
-                        Text(
-                            text = if (selectedGame == GameType.EUROJACKPOT) "Eurozahlen (1–12)" else "Superzahl (0–9)",
-                            fontSize = 11.sp,
-                            color = AccentAmber,
-                            fontWeight = FontWeight.Bold
-                        )
-                    }
-
-                    Spacer(modifier = Modifier.height(8.dp))
-
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.spacedBy(10.dp, Alignment.CenterHorizontally)
-                    ) {
-                        currentTicket.superNumbers.forEachIndexed { index, num ->
+                        targetTicket.mainNumbers.forEachIndexed { index, number ->
                             LotteryBall(
-                                number = num,
-                                isSuper = true,
-                                delayMs = 250L + index * 50L
+                                number = number,
+                                delayMs = index * 50L,
+                                generationKey = "${targetTicket.id}_$index"
                             )
+                        }
+
+                        if (targetTicket.superNumbers.isNotEmpty()) {
+                            Spacer(modifier = Modifier.width(6.dp))
+
+                            Box(
+                                modifier = Modifier
+                                    .size(24.dp)
+                                    .clip(CircleShape)
+                                    .background(AccentAmber.copy(alpha = 0.2f)),
+                                contentAlignment = Alignment.Center
+                            ) {
+                                Icon(
+                                    imageVector = Icons.Filled.Star,
+                                    contentDescription = "Super",
+                                    tint = AccentAmber,
+                                    modifier = Modifier.size(16.dp)
+                                )
+                            }
+
+                            targetTicket.superNumbers.forEachIndexed { index, number ->
+                                LotteryBall(
+                                    number = number,
+                                    isSuper = true,
+                                    delayMs = (targetTicket.mainNumbers.size + index) * 50L,
+                                    generationKey = "${targetTicket.id}_super_$index"
+                                )
+                            }
                         }
                     }
                 }
             }
 
-            Spacer(modifier = Modifier.height(16.dp))
+            Spacer(modifier = Modifier.height(18.dp))
 
-            // Statistics Footer
-            if (selectedGame != GameType.TOTO_13 && currentTicket.mainNumbers.isNotEmpty()) {
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.SpaceEvenly
-                ) {
-                    BentoStatBadge(label = "Summe", value = currentTicket.sum.toString())
-                    BentoStatBadge(label = "G/U", value = "${currentTicket.evenCount}/${currentTicket.oddCount}")
-                    BentoStatBadge(label = "Min/Max", value = "${currentTicket.minNumber}–${currentTicket.maxNumber}")
+            // Bento Quick Stats Row
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .horizontalScroll(rememberScrollState()),
+                horizontalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+                if (selectedGame != GameType.TOTO_13) {
+                    BentoStatBadge(
+                        label = "Summe",
+                        value = "${currentTicket.sum}",
+                        accentColor = ElectricBlue
+                    )
+                    BentoStatBadge(
+                        label = "G / U",
+                        value = "${currentTicket.evenCount} / ${currentTicket.oddCount}",
+                        accentColor = AccentPurple
+                    )
+                    if (currentTicket.mainNumbers.isNotEmpty()) {
+                        BentoStatBadge(
+                            label = "Spanne",
+                            value = "${currentTicket.mainNumbers.minOrNull()} - ${currentTicket.mainNumbers.maxOrNull()}",
+                            accentColor = AccentAmber
+                        )
+                    }
+                } else {
+                    val count1 = currentTicket.mainNumbers.count { it == 1 }
+                    val count0 = currentTicket.mainNumbers.count { it == 0 }
+                    val count2 = currentTicket.mainNumbers.count { it == 2 }
+                    BentoStatBadge(label = "Tipps (1)", value = "$count1", accentColor = ElectricBlue)
+                    BentoStatBadge(label = "Tipps (0)", value = "$count0", accentColor = AccentAmber)
+                    BentoStatBadge(label = "Tipps (2)", value = "$count2", accentColor = AccentPink)
                 }
             }
         }
 
-        // ── Action Buttons ────────────────────────────────────────────────
-        // Big primary generate button
+        // ── Primary Action Button (Draw / Pay) ────────────────────────────
         Button(
             onClick = { triggerDraw() },
             modifier = Modifier
                 .fillMaxWidth()
                 .height(54.dp)
-                .shadow(12.dp, RoundedCornerShape(16.dp), ambientColor = if (availableDraws > 0) ElectricBlue else AccentAmber, spotColor = if (availableDraws > 0) ElectricBlue else AccentAmber),
+                .shadow(
+                    BentoShadowElevation + 4.dp,
+                    RoundedCornerShape(BentoCardRadius),
+                    ambientColor = if (availableDraws > 0) ElectricBlue.copy(alpha = 0.5f) else AccentAmber.copy(alpha = 0.5f),
+                    spotColor = if (availableDraws > 0) ElectricBlue.copy(alpha = 0.5f) else AccentAmber.copy(alpha = 0.5f)
+                ),
             colors = ButtonDefaults.buttonColors(
                 containerColor = if (availableDraws > 0) ElectricBlue else AccentAmber
             ),
-            shape = RoundedCornerShape(16.dp)
+            shape = RoundedCornerShape(BentoCardRadius)
         ) {
             Icon(
                 imageVector = if (availableDraws > 0) Icons.Filled.Casino else Icons.Filled.ShoppingCart,
                 contentDescription = "Draw",
-                tint = Color.White,
+                tint = if (availableDraws > 0) PrimaryDark else PrimaryDark,
                 modifier = Modifier.size(20.dp)
             )
             Spacer(modifier = Modifier.width(8.dp))
@@ -579,26 +717,27 @@ fun GeneratorScreen(
                 text = if (availableDraws > 0) "Zahlen ziehen (1 Ziehung)" else "Zahlen ziehen (1,35 € mit PayPal / Mollie)",
                 fontSize = 15.sp,
                 fontWeight = FontWeight.Bold,
-                color = Color.White
+                color = PrimaryDark
             )
         }
 
-        // Secondary Action Row (Speichern & Anpassen)
+        // ── Secondary Action Row (Save & Customize) ───────────────────────
         Row(
             modifier = Modifier.fillMaxWidth(),
             horizontalArrangement = Arrangement.spacedBy(10.dp)
         ) {
-            // Speichern Button
+            // Save Button
             OutlinedButton(
                 onClick = {
                     onSaveTicket(currentTicket)
-                    Toast.makeText(context, "Tippschein gespeichert!", Toast.LENGTH_SHORT).show()
+                    Toast.makeText(context, "Schein gespeichert!", Toast.LENGTH_SHORT).show()
                 },
                 modifier = Modifier
                     .weight(1f)
-                    .height(48.dp),
-                shape = RoundedCornerShape(14.dp),
-                border = androidx.compose.foundation.BorderStroke(1.dp, SurfaceBorder),
+                    .height(48.dp)
+                    .shadow(3.dp, RoundedCornerShape(BentoInnerRadius), ambientColor = BentoShadowColor, spotColor = BentoShadowColor),
+                shape = RoundedCornerShape(BentoInnerRadius),
+                border = androidx.compose.foundation.BorderStroke(1.dp, SurfaceBorderLight),
                 colors = ButtonDefaults.outlinedButtonColors(
                     containerColor = SurfaceCard,
                     contentColor = TextPrimary
@@ -606,31 +745,23 @@ fun GeneratorScreen(
             ) {
                 Icon(
                     imageVector = Icons.Filled.BookmarkBorder,
-                    contentDescription = "Speichern",
-                    tint = TextPrimary,
-                    modifier = Modifier.size(16.dp)
+                    contentDescription = "Save",
+                    tint = AccentPurple,
+                    modifier = Modifier.size(18.dp)
                 )
                 Spacer(modifier = Modifier.width(6.dp))
-                Text(
-                    text = "Speichern",
-                    fontSize = 13.sp,
-                    fontWeight = FontWeight.SemiBold
-                )
+                Text("Speichern", fontSize = 13.sp, fontWeight = FontWeight.SemiBold)
             }
 
-            // Anpassen Button
+            // Customize trigger Button
             OutlinedButton(
-                onClick = {
-                    showCustomizer = !showCustomizer
-                    if (showCustomizer && selectedGame != GameType.CUSTOM) {
-                        selectedGame = GameType.CUSTOM
-                    }
-                },
+                onClick = { showCustomizer = !showCustomizer },
                 modifier = Modifier
                     .weight(1f)
-                    .height(48.dp),
-                shape = RoundedCornerShape(14.dp),
-                border = androidx.compose.foundation.BorderStroke(1.dp, SurfaceBorder),
+                    .height(48.dp)
+                    .shadow(3.dp, RoundedCornerShape(BentoInnerRadius), ambientColor = BentoShadowColor, spotColor = BentoShadowColor),
+                shape = RoundedCornerShape(BentoInnerRadius),
+                border = androidx.compose.foundation.BorderStroke(1.dp, SurfaceBorderLight),
                 colors = ButtonDefaults.outlinedButtonColors(
                     containerColor = SurfaceCard,
                     contentColor = TextPrimary
@@ -638,87 +769,114 @@ fun GeneratorScreen(
             ) {
                 Icon(
                     imageVector = Icons.Filled.Tune,
-                    contentDescription = "Anpassen",
-                    tint = TextPrimary,
-                    modifier = Modifier.size(16.dp)
+                    contentDescription = "Config",
+                    tint = ElectricBlue,
+                    modifier = Modifier.size(18.dp)
                 )
                 Spacer(modifier = Modifier.width(6.dp))
-                Text(
-                    text = "Anpassen",
-                    fontSize = 13.sp,
-                    fontWeight = FontWeight.SemiBold
-                )
-                Spacer(modifier = Modifier.width(2.dp))
-                Icon(
-                    imageVector = if (showCustomizer) Icons.Filled.KeyboardArrowUp else Icons.Filled.KeyboardArrowDown,
-                    contentDescription = "Expand",
-                    tint = TextSecondary,
-                    modifier = Modifier.size(16.dp)
-                )
+                Text("Anpassen", fontSize = 13.sp, fontWeight = FontWeight.SemiBold)
             }
         }
 
-        // ── Bento Grid Info Cards ─────────────────────────────────────────
+        // ── 2x2 Bento Micro Grid ──────────────────────────────────────────
         Row(
             modifier = Modifier.fillMaxWidth(),
             horizontalArrangement = Arrangement.spacedBy(10.dp)
         ) {
-            // Bento Tile 1: Zufallsverteilung
+            // Tile 1: Echter Zufall
             BentoCard(
                 modifier = Modifier.weight(1f),
                 backgroundColor = SurfaceDark,
                 borderColor = SurfaceBorder,
+                shadowElevation = BentoShadowElevation,
                 contentPadding = PaddingValues(14.dp)
             ) {
                 Row(
                     verticalAlignment = Alignment.CenterVertically,
                     horizontalArrangement = Arrangement.spacedBy(8.dp)
                 ) {
-                    Icon(
-                        imageVector = Icons.Filled.Analytics,
-                        contentDescription = "Stats",
-                        tint = AccentEmerald,
-                        modifier = Modifier.size(18.dp)
+                    Box(
+                        modifier = Modifier
+                            .size(30.dp)
+                            .clip(RoundedCornerShape(BentoBadgeRadius))
+                            .background(AccentEmerald.copy(alpha = 0.2f)),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Icon(
+                            imageVector = Icons.Filled.Security,
+                            contentDescription = "RNG",
+                            tint = AccentEmerald,
+                            modifier = Modifier.size(16.dp)
+                        )
+                    }
+                    Text(
+                        text = "100% Zufall",
+                        fontSize = 12.sp,
+                        fontWeight = FontWeight.Bold,
+                        color = TextPrimary
                     )
-                    Text("100% Zufall", fontSize = 13.sp, fontWeight = FontWeight.Bold, color = TextPrimary)
                 }
-                Spacer(modifier = Modifier.height(4.dp))
+                Spacer(modifier = Modifier.height(6.dp))
                 Text(
-                    text = "Echte kryptografische Zufallsgenerierung ohne doppelte Zahlen.",
-                    fontSize = 11.sp,
+                    text = "Kryptografisch sichere Ziehung ohne Wiederholungen.",
+                    fontSize = 10.sp,
                     color = TextMuted,
-                    lineHeight = 14.sp
+                    lineHeight = 13.sp
                 )
             }
 
-            // Bento Tile 2: Gespeichert Zähler
+            // Tile 2: Gespeicherte Tickets
             BentoCard(
                 modifier = Modifier.weight(1f),
                 backgroundColor = SurfaceDark,
                 borderColor = SurfaceBorder,
+                shadowElevation = BentoShadowElevation,
                 contentPadding = PaddingValues(14.dp)
             ) {
                 Row(
                     verticalAlignment = Alignment.CenterVertically,
                     horizontalArrangement = Arrangement.spacedBy(8.dp)
                 ) {
-                    Icon(
-                        imageVector = Icons.Filled.Bookmark,
-                        contentDescription = "Saved",
-                        tint = AccentPurple,
-                        modifier = Modifier.size(18.dp)
+                    Box(
+                        modifier = Modifier
+                            .size(30.dp)
+                            .clip(RoundedCornerShape(BentoBadgeRadius))
+                            .background(AccentPurple.copy(alpha = 0.2f)),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Icon(
+                            imageVector = Icons.Filled.Bookmark,
+                            contentDescription = "Saved",
+                            tint = AccentPurple,
+                            modifier = Modifier.size(16.dp)
+                        )
+                    }
+                    Text(
+                        text = "Archiv",
+                        fontSize = 12.sp,
+                        fontWeight = FontWeight.Bold,
+                        color = TextPrimary
                     )
-                    Text("Archiv", fontSize = 13.sp, fontWeight = FontWeight.Bold, color = TextPrimary)
                 }
-                Spacer(modifier = Modifier.height(4.dp))
+                Spacer(modifier = Modifier.height(6.dp))
                 Text(
-                    text = "$savedTicketsCount Tippscheine für die nächste Ziehung gesichert.",
-                    fontSize = 11.sp,
-                    color = TextMuted,
-                    lineHeight = 14.sp
+                    text = "$savedTicketsCount Schein${if (savedTicketsCount != 1) "e" else ""} gesichert",
+                    fontSize = 13.sp,
+                    fontWeight = FontWeight.Bold,
+                    color = AccentPurple
                 )
             }
         }
+
+        // ── Frequency Distribution Bar Chart Bento Card ───────────────────
+        FrequencyBarChartCard(
+            gameType = selectedGame,
+            currentTicket = currentTicket,
+            drawHistory = drawHistory,
+            onResetFrequency = {
+                drawHistory = listOf(currentTicket)
+                Toast.makeText(context, "Frequenz-Historie zurückgesetzt", Toast.LENGTH_SHORT).show()
+            }
+        )
     }
 }
-

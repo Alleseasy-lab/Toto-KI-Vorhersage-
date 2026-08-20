@@ -7,22 +7,23 @@ import androidx.compose.runtime.Composable
 
 private val DarkColorScheme = darkColorScheme(
     primary = ElectricBlue,
-    onPrimary = DarkBackground,
+    onPrimary = PrimaryDark,
     primaryContainer = RoyalBlue,
     onPrimaryContainer = TextPrimary,
     secondary = AccentPurple,
-    onSecondary = DarkBackground,
+    onSecondary = PrimaryDark,
     secondaryContainer = SurfaceCard,
     onSecondaryContainer = TextPrimary,
     tertiary = AccentAmber,
-    onTertiary = DarkBackground,
+    onTertiary = PrimaryDark,
     background = DarkBackground,
     onBackground = TextPrimary,
     surface = SurfaceDark,
     onSurface = TextPrimary,
     surfaceVariant = SurfaceCard,
     onSurfaceVariant = TextSecondary,
-    outline = SurfaceBorder
+    outline = SurfaceBorder,
+    outlineVariant = SurfaceBorderLight
 )
 
 @Composable
@@ -37,4 +38,3 @@ fun MyApplicationTheme(
         content = content
     )
 }
-
